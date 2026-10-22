@@ -1,25 +1,33 @@
-<div class="row">
-    <div class="col-md-4 mb-3 d-flex justify-content-between justify-content-md-start">
-        <form method="get" action="{{ route('home') }}" class="mr-1">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" placeholder="{{ lang('dotted_search') }}" aria-label="{{ lang('dotted_search') }}" value="{{ param(request, 'search', '') }}">
-                <select class="form-control" name="type" aria-label="Media type">
-                    <option value="">All media</option>
-                    <option value="video" {{ param(request, 'type') == 'video' ? 'selected' }}>Videos</option>
-                </select>
-                <input type="date" class="form-control" name="from" aria-label="Uploaded from" value="{{ param(request, 'from', '') }}">
-                <input type="date" class="form-control" name="to" aria-label="Uploaded to" value="{{ param(request, 'to', '') }}">
-                <input type="hidden" name="tag" value="{{ param(request, 'tag', '') }}">
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-search"></i></button>
-                </div>
-            </div>
-        </form>
-        <div class="dropdown">
-            <button class="btn btn-outline-dark dropdown-toggle" type="button" data-toggle="dropdown">
-                <i class="fas fa-tags"></i>
+<div class="media-toolbar">
+    <form method="get" action="{{ route('home') }}" class="media-search" role="search">
+        <div class="media-search-query">
+            <label for="media-search-query">Search</label>
+            <input id="media-search-query" type="search" name="search" class="form-control" placeholder="{{ lang('dotted_search') }}" value="{{ param(request, 'search', '') }}">
+        </div>
+        <div>
+            <label for="media-search-type">Media type</label>
+            <select id="media-search-type" class="form-control" name="type">
+                <option value="">All media</option>
+                <option value="video" {{ param(request, 'type') == 'video' ? 'selected' }}>Videos</option>
+            </select>
+        </div>
+        <div>
+            <label for="media-search-from">Uploaded from</label>
+            <input id="media-search-from" type="date" class="form-control" name="from" value="{{ param(request, 'from', '') }}">
+        </div>
+        <div>
+            <label for="media-search-to">Uploaded to</label>
+            <input id="media-search-to" type="date" class="form-control" name="to" value="{{ param(request, 'to', '') }}">
+        </div>
+        <input type="hidden" name="tag" value="{{ param(request, 'tag', '') }}">
+        <button type="submit" class="btn btn-outline-primary"><i class="fas fa-search mr-1" aria-hidden="true"></i> Search</button>
+    </form>
+    <div class="media-toolbar-controls">
+        <div class="media-toolbar-tags dropdown">
+            <button class="btn btn-outline-dark dropdown-toggle" type="button" id="dropdownTags" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-tags mr-1" aria-hidden="true"></i> Tags
             </button>
-            <div class="dropdown-menu" id="dropdown-tag-list" style="max-height: 250px; overflow: auto">
+            <div class="dropdown-menu" id="dropdown-tag-list" aria-labelledby="dropdownTags" style="max-height: 250px; overflow: auto">
                 {% if tags is empty %}
                     <h6 class="dropdown-header">{{ lang('no_tags') }}</h6>
                 {% else %}
@@ -30,26 +38,26 @@
                 {% endif %}
             </div>
         </div>
-    </div>
-    <div class="col-md-4 d-flex justify-content-center">
-        {% include 'comp/pager.twig' %}
-    </div>
-    <div class="col-md-4 mb-3 d-flex justify-content-md-end justify-content-between">
-        <div class="btn-group mr-1">
-            <div class="btn-group">
-                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="dropdownOrder" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    {{ lang('order_by') }}
-                </button>
-                <div class="dropdown-menu shadow-sm" aria-labelledby="dropdownMenuButton">
-                    <a class="dropdown-item" href="{{ queryParams({'sort':'time'}) }}"><i class="fas fa-calendar-alt fa-fw"></i> {{ lang('time') }}</a>
-                    <a class="dropdown-item" href="{{ queryParams({'sort':'name'}) }}"><i class="fas fa-font fa-fw"></i> {{ lang('name') }}</a>
-                    <a class="dropdown-item" href="{{ queryParams({'sort':'size'}) }}"><i class="fas fa-weight-hanging fa-fw"></i> {{ lang('size') }}</a>
-                </div>
-            </div>
-            <a href="{{ queryParams({'order': request.queryParams['order'] is same as('ASC') ? 'DESC' : 'ASC' }) }}" class="btn btn-outline-info">
-                <i class="fas {{ request.queryParams['order'] is same as('ASC') ? 'fa-sort-amount-up' : 'fa-sort-amount-down' }}"></i>
-            </a>
+        <div class="media-toolbar-pagination">
+            {% include 'comp/pager.twig' %}
         </div>
-        <a href="javascript:void(0)" id="bulk-delete" class="btn btn-outline-danger disabled" data-toggle="tooltip" title="{{ lang('delete_selected') }}"><i class="fas fa-trash"></i></a>
+        <div class="media-toolbar-actions">
+            <div class="btn-group mr-1">
+                <div class="btn-group">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="dropdownOrder" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{ lang('order_by') }}
+                    </button>
+                    <div class="dropdown-menu shadow-sm" aria-labelledby="dropdownOrder">
+                        <a class="dropdown-item" href="{{ queryParams({'sort':'time'}) }}"><i class="fas fa-calendar-alt fa-fw"></i> {{ lang('time') }}</a>
+                        <a class="dropdown-item" href="{{ queryParams({'sort':'name'}) }}"><i class="fas fa-font fa-fw"></i> {{ lang('name') }}</a>
+                        <a class="dropdown-item" href="{{ queryParams({'sort':'size'}) }}"><i class="fas fa-weight-hanging fa-fw"></i> {{ lang('size') }}</a>
+                    </div>
+                </div>
+                <a href="{{ queryParams({'order': request.queryParams['order'] is same as('ASC') ? 'DESC' : 'ASC' }) }}" class="btn btn-outline-info">
+                    <i class="fas {{ request.queryParams['order'] is same as('ASC') ? 'fa-sort-amount-up' : 'fa-sort-amount-down' }}"></i>
+                </a>
+            </div>
+            <a href="javascript:void(0)" id="bulk-delete" class="btn btn-outline-danger disabled" data-toggle="tooltip" title="{{ lang('delete_selected') }}"><i class="fas fa-trash"></i></a>
+        </div>
     </div>
 </div>
