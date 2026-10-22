@@ -60,6 +60,7 @@ class DashboardController extends Controller
             ->withUserId($this->session->get('user_id'))
             ->search(param($request, 'search', null))
             ->filterByTag(param($request, 'tag'))
+            ->filters((string) param($request, 'type', ''), (string) param($request, 'from', ''), (string) param($request, 'to', ''))
             ->run($page);
 
         $tags = make(TagRepository::class, [

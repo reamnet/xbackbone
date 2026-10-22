@@ -28,6 +28,10 @@ class UpgradeController extends Controller
      */
     public function upgrade(Response $response, Logger $logger, Session $session): Response
     {
+        if (getenv('XBACKBONE_CONTAINER')) {
+            $session->alert('This container is updated by rebuilding its Docker image.', 'warning');
+            return redirect($response, route('system'));
+        }
         if (!extension_loaded('zip')) {
             $session->alert(lang('zip_ext_not_loaded'), 'danger');
             return redirect($response, route('system'));
@@ -122,6 +126,9 @@ class UpgradeController extends Controller
      */
     public function checkForUpdates(Request $request, Response $response): Response
     {
+        if (getenv('XBACKBONE_CONTAINER')) {
+            return json($response, ['upgrade' => false, 'message' => 'Container updates are managed by rebuilding this image.']);
+        }
         $jsonResponse = [
             'status' => 'OK',
             'message' => lang('already_latest_version'),

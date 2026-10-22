@@ -8,7 +8,7 @@ use PDO;
 
 class TagRepository
 {
-    public const PER_MEDIA_LIMIT = 10;
+    public const PER_MEDIA_LIMIT = 20;
 
     /**
      * @var DB
@@ -49,7 +49,11 @@ class TagRepository
      */
     public function addTag(string $tagName, $mediaId)
     {
-        $tag = $this->db->query('SELECT * FROM `tags` WHERE `name` = ? LIMIT 1', $tagName)->fetch();
+        $tagName = mb_strtolower(trim(preg_replace('/\s+/u', ' ', $tagName)));
+        if ($tagName === '' || mb_strlen($tagName) > 50 || preg_match('/[\x00-\x1f]/', $tagName)) {
+            throw new \InvalidArgumentException('Tags must contain 1–50 printable characters.');
+        }
+        $tag = $this->db->query('SELECT * FROM `tags` WHERE LOWER(`name`) = ? LIMIT 1', $tagName)->fetch();
 
         $connectedIds = $this->db->query('SELECT `tag_id` FROM `uploads_tags` WHERE `upload_id` = ?', $mediaId)->fetchAll(PDO::FETCH_COLUMN, 0);
 

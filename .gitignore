@@ -139,3 +139,6 @@ release.zip
 /.settings/
 /.project
 /.buildpath
+
+resources/chunks/
+resources/previews/

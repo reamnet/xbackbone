@@ -3,6 +3,13 @@
         <form method="get" action="{{ route('home') }}" class="mr-1">
             <div class="input-group">
                 <input type="text" name="search" class="form-control" placeholder="{{ lang('dotted_search') }}" aria-label="{{ lang('dotted_search') }}" value="{{ param(request, 'search', '') }}">
+                <select class="form-control" name="type" aria-label="Media type">
+                    <option value="">All media</option>
+                    <option value="video" {{ param(request, 'type') == 'video' ? 'selected' }}>Videos</option>
+                </select>
+                <input type="date" class="form-control" name="from" aria-label="Uploaded from" value="{{ param(request, 'from', '') }}">
+                <input type="date" class="form-control" name="to" aria-label="Uploaded to" value="{{ param(request, 'to', '') }}">
+                <input type="hidden" name="tag" value="{{ param(request, 'tag', '') }}">
                 <div class="input-group-append">
                     <button type="submit" class="btn btn-outline-secondary"><i class="fas fa-search"></i></button>
                 </div>

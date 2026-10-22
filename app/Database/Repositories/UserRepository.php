@@ -37,7 +37,7 @@ class UserRepository
      * @param  Session|null  $session
      * @return UserRepository
      */
-    public static function make(DB $db, Session $session = null)
+    public static function make(DB $db, ?Session $session = null)
     {
         return new self($db, $session);
     }
@@ -84,7 +84,7 @@ class UserRepository
      * @param  int  $copyRaw
      * @return bool|\PDOStatement|string
      */
-    public function create(string $email, string $username, string $password = null, int $isAdmin = 0, int $isActive = 0, int $maxUserQuota = -1, string $activateToken = null, int $ldap = 0, int $hideUploads = 0, int $copyRaw = 0)
+    public function create(string $email, string $username, ?string $password = null, int $isAdmin = 0, int $isActive = 0, int $maxUserQuota = -1, ?string $activateToken = null, int $ldap = 0, int $hideUploads = 0, int $copyRaw = 0)
     {
         do {
             $userCode = humanRandomString(5);
@@ -121,7 +121,7 @@ class UserRepository
      * @param  int  $copyRaw
      * @return bool|\PDOStatement|string
      */
-    public function update($id, string $email, string $username, string $password = null, int $isAdmin = 0, int $isActive = 0, int $maxUserQuota = -1, int $ldap = 0, int $hideUploads = 0, int $copyRaw = 0)
+    public function update($id, string $email, string $username, ?string $password = null, int $isAdmin = 0, int $isActive = 0, int $maxUserQuota = -1, int $ldap = 0, int $hideUploads = 0, int $copyRaw = 0)
     {
         if (!empty($password)) {
             return $this->database->query('UPDATE `users` SET `email`=?, `username`=?, `password`=?, `is_admin`=?, `active`=?, `max_disk_quota`=?, `ldap`=?, `hide_uploads`=?, `copy_raw`=? WHERE `id` = ?', [

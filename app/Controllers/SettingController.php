@@ -31,6 +31,20 @@ class SettingController extends Controller
             return redirect($response, route('system'));
         }
 
+        if (!$this->session->get('csrf') || !hash_equals($this->session->get('csrf'), (string) param($request, 'csrf'))) {
+            throw new \Slim\Exception\HttpBadRequestException($request);
+        }
+        $brandName = trim((string) param($request, 'brand_name', $this->config['app_name']));
+        $brandLogo = trim((string) param($request, 'brand_logo', ''));
+        $brandFooter = trim((string) param($request, 'brand_footer', ''));
+        if ($brandName === '' || mb_strlen($brandName) > 80 || mb_strlen($brandFooter) > 200 ||
+            ($brandLogo !== '' && (!filter_var($brandLogo, FILTER_VALIDATE_URL) || !str_starts_with($brandLogo, 'https://') || strlen($brandLogo) > 2048))) {
+            throw new \Slim\Exception\HttpBadRequestException($request, 'Invalid branding settings.');
+        }
+        $this->updateSetting('brand_name', $brandName);
+        $this->updateSetting('brand_logo', $brandLogo);
+        $this->updateSetting('brand_footer', $brandFooter);
+
         // registrations
         $this->updateSetting('register_enabled', param($request, 'register_enabled', 'off'));
         $this->updateSetting('auto_tagging', param($request, 'auto_tagging', 'off'));

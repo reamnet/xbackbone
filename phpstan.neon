@@ -1,0 +1,8 @@
+parameters:
+    level: 5
+    bootstrapFiles:
+        - tests/phpstan-bootstrap.php
+    paths:
+        - app/Services
+        - app/Storage
+        - app/Controllers/Auth/SsoController.php

@@ -1,0 +1,49 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__.'/../vendor/autoload.php';
+define('BASE_DIR', dirname(__DIR__).'/');
+$config = require BASE_DIR.'config.php';
+$builder = new DI\ContainerBuilder();
+$builder->addDefinitions(BASE_DIR.'bootstrap/container.php');
+$container = $builder->build();
+$container->set('config', $config);
+$db = $container->get('database');
+$storage = $container->get('storage');
+$worker = new App\Services\VideoPreviews();
+$lastPrune = 0;
+while (true) {
+    if (time() - $lastPrune > 300) {
+        foreach (glob(BASE_DIR.'resources/chunks/*', GLOB_ONLYDIR) as $directory) {
+            $lock = fopen($directory.'/.lock', 'c');
+            if (!$lock) { continue; }
+            if (flock($lock, LOCK_EX | LOCK_NB)) {
+                foreach (glob($directory.'/*.json') as $path) {
+                    if (filemtime($path) < time() - 86400) {
+                        @unlink(substr($path, 0, -5).'.part');
+                        @unlink($path);
+                    }
+                }
+                flock($lock, LOCK_UN);
+            }
+            fclose($lock);
+        }
+        $db->query('DELETE FROM upload_receipts WHERE created_at < ?', date('Y-m-d H:i:s', time() - 86400));
+        $lastPrune = time();
+    }
+    // Backfill existing videos once and enqueue new uploads through UploadController.
+    $rows = $db->query("SELECT u.id FROM uploads u LEFT JOIN preview_jobs p ON p.upload_id=u.id WHERE p.upload_id IS NULL AND (LOWER(u.storage_path) LIKE '%.mp4' OR LOWER(u.storage_path) LIKE '%.webm' OR LOWER(u.storage_path) LIKE '%.mkv' OR LOWER(u.storage_path) LIKE '%.mov' OR LOWER(u.storage_path) LIKE '%.avi' OR LOWER(u.storage_path) LIKE '%.m4v') LIMIT 20")->fetchAll();
+    foreach ($rows as $row) { $db->query('INSERT INTO preview_jobs(upload_id) VALUES(?)', $row->id); }
+    $jobs = $db->query('SELECT u.* FROM uploads u JOIN preview_jobs p ON p.upload_id=u.id WHERE p.finished=0 AND p.attempts<3 LIMIT 10')->fetchAll();
+    foreach ($jobs as $job) {
+        $db->query('UPDATE preview_jobs SET attempts=attempts+1 WHERE upload_id=?', $job->id);
+        try {
+            $worker->generate($job, $storage, $config);
+            $db->query('UPDATE preview_jobs SET finished=1,error=NULL WHERE upload_id=?', $job->id);
+        } catch (Throwable $e) {
+            $db->query('UPDATE preview_jobs SET error=? WHERE upload_id=?', ['Preview unavailable. Check FFmpeg and the source file.', $job->id]);
+            fwrite(STDERR, "Preview failed for upload {$job->id}.\n");
+        }
+    }
+    sleep($jobs ? 1 : 5);
+}

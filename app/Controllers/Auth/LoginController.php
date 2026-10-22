@@ -70,6 +70,7 @@ class LoginController extends AuthController
             return redirect($response, route('login'));
         }
 
+        session_regenerate_id(true);
         $this->session->set('logged', true)
             ->set('user_id', $user->id)
             ->set('username', $user->username)

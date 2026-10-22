@@ -15,16 +15,14 @@ class RegisterControllerTest extends TestCase
         Mail::fake();
     }
 
-    /** @test */
-    public function it_loads_the_register_page()
+    public function test_it_loads_the_register_page()
     {
         $response = $this->get(route('register'));
 
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    /** @test */
-    public function it_give_404_if_registration_are_off()
+    public function test_it_give_404_if_registration_are_off()
     {
         $this->updateSetting('register_enabled', 'off');
 
@@ -35,8 +33,7 @@ class RegisterControllerTest extends TestCase
         $this->assertSame(404, $response->getStatusCode());
     }
 
-    /** @test */
-    public function it_redirect_to_home_if_logged_in()
+    public function test_it_redirect_to_home_if_logged_in()
     {
         $this->createAdminUser();
 
@@ -61,8 +58,7 @@ class RegisterControllerTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
     }
 
-    /** @test */
-    public function it_register_a_new_user()
+    public function test_it_register_a_new_user()
     {
         $response = $this->get(route('register'));
         $form = $this->getCrawler($response)
@@ -80,8 +76,7 @@ class RegisterControllerTest extends TestCase
         $this->assertIsObject($result);
     }
 
-    /** @test */
-    public function it_activate_a_new_user()
+    public function test_it_activate_a_new_user()
     {
         $activateToken = bin2hex(random_bytes(16));
 
@@ -101,8 +96,7 @@ class RegisterControllerTest extends TestCase
         $this->assertNull($result->activate_token);
     }
 
-    /** @test */
-    public function it_cant_activate_if_user_not_exists()
+    public function test_it_cant_activate_if_user_not_exists()
     {
         $response = $this->get(route('activate', [
             'activateToken' => 'token',
@@ -112,8 +106,7 @@ class RegisterControllerTest extends TestCase
         $this->assertSame(route('login'), $response->getHeaderLine('Location'));
     }
 
-    /** @test */
-    public function it_fails_with_no_data()
+    public function test_it_fails_with_no_data()
     {
         $response = $this->get(route('register'));
         $form = $this->getCrawler($response)

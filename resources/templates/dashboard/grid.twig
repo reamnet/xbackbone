@@ -48,14 +48,16 @@
                                         </div>
                                     </div>
                                 </div>
-                                {% if isDisplayableImage(media.mimetype) %}
+                                {% if media.mimetype starts with 'video/' %}
+                                    <img class="content-image w-100" style="object-fit:cover" src="{{ route('public.thumbnail', {'userCode': media.user_code, 'mediaCode': media.code}) }}" alt="{{ media.filename }}" loading="lazy" onerror="this.style.display='none'">
+                                {% elseif isDisplayableImage(media.mimetype) %}
                                     <div class="content-image" style="background-image: url({{ urlFor('/' ~ media.user_code ~ '/' ~ media.code ~ '.' ~ media.extension ~ '/raw?height=267') }});"></div>
                                 {% else %}
                                     <div class="text-center" style="font-size: 178px;"><i class="far {{ mime2font(media.mimetype) }} mb-4 mt-4"></i></div>
                                 {% endif %}
                             </div>
                             <div class="card-footer d-flex justify-content-between">
-                                <span class="user-title" title="{{ media.filename }}">{{ media.filename }}</span>
+                                <span class="user-title" title="{{ media.filename }}">{{ media.filename }}</span>{% if media.game %}<span class="badge badge-info">{{ media.game }}</span>{% endif %} <button type="button" class="btn btn-sm btn-link media-edit" data-id="{{ media.id }}" data-name="{{ media.filename }}" data-game="{{ media.game }}" data-description="{{ media.description }}" data-recorded="{{ media.recorded_at }}" data-tags="{{ media.tags|join(', ') }}" title="Edit name, game, description and tags"><i class="fas fa-edit"></i></button>
                                 <small>{{ media.timestamp|date("d/m/Y H:i") }}</small>
                             </div>
                         </div>

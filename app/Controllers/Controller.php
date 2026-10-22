@@ -12,18 +12,18 @@ use DI\Container;
 use DI\DependencyException;
 use DI\NotFoundException;
 use Exception;
-use League\Flysystem\Filesystem;
+use App\Storage\Filesystem;
 use Monolog\Logger;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
- * @property Session session
- * @property View view
- * @property DB database
- * @property Logger|null logger
- * @property Filesystem|null storage
- * @property Lang lang
- * @property array config
+ * @property Session $session
+ * @property View $view
+ * @property DB $database
+ * @property Logger|null $logger
+ * @property Filesystem|null $storage
+ * @property Lang $lang
+ * @property array $config
  */
 abstract class Controller
 {
@@ -89,24 +89,15 @@ abstract class Controller
      */
     protected function updateUserQuota(Request $request, $userId, $fileSize, $dec = false)
     {
-        $user = make(UserRepository::class)->get($request, $userId);
-
-        if ($dec) {
-            $tot = max($user->current_disk_quota - $fileSize, 0);
-        } else {
-            $tot = $user->current_disk_quota + $fileSize;
-
-            if ($this->getSetting('quota_enabled') === 'on' && $user->max_disk_quota > 0 && $user->max_disk_quota < $tot) {
-                return false;
-            }
+        $delta = $dec ? -(int) $fileSize : (int) $fileSize;
+        $sql = 'UPDATE users SET current_disk_quota=CASE WHEN current_disk_quota+? < 0 THEN 0 ELSE current_disk_quota+? END WHERE id=?';
+        $params = [$delta, $delta, $userId];
+        if (!$dec && $this->getSetting('quota_enabled') === 'on') {
+            $sql .= ' AND (max_disk_quota<=0 OR current_disk_quota+?<=max_disk_quota)';
+            $params[] = $delta;
         }
-
-        $this->database->query('UPDATE `users` SET `current_disk_quota`=? WHERE `id` = ?', [
-            $tot,
-            $user->id,
-        ]);
-
-        return true;
+        $query = $this->database->query($sql, $params);
+        return $query->rowCount() > 0 || $delta === 0;
     }
 
     /**

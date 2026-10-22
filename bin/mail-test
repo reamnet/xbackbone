@@ -1,0 +1,8 @@
+#!/usr/bin/env php
+<?php
+require __DIR__.'/../vendor/autoload.php';
+$to = $argv[1] ?? '';
+if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "Usage: php bin/mail-test recipient@example.com\n"); exit(1); }
+App\Web\Mail::make()->from(getenv('SMTP_FROM_ADDRESS') ?: 'no-reply@example.com', getenv('SMTP_FROM_NAME') ?: 'XBackBone')
+    ->to($to)->subject('XBackBone SMTP test')->message('The configured mail transport accepted this test.')->send();
+echo "Mail submitted.\n";

@@ -1,0 +1,8 @@
+#!/usr/bin/env php
+<?php
+require __DIR__.'/../vendor/autoload.php';
+define('BASE_DIR', dirname(__DIR__).'/');
+$config = require BASE_DIR.'config.php';
+$db = new App\Database\DB(dsnFromConfig($config), $config['db']['username'] ?? null, $config['db']['password'] ?? null);
+$db->query('UPDATE preview_jobs SET attempts=0,error=NULL WHERE finished=0');
+echo "Failed previews queued for retry.\n";

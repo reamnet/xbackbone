@@ -1,27 +1,28 @@
-name: PHP Composer
-
+name: Test suite
 on:
   push:
-    branches: [ master ]
+    branches: [master, 3.x, improvements/3.8.2]
   pull_request:
-    branches: [ master ]
-
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        operating-system: [ubuntu-latest]
-        php-versions: ["7.3", "7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
-
+        php: ['8.4', '8.5']
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Validate composer.json and composer.lock
-      run: composer validate --no-check-version
-
-    - name: Install dependencies
-      run: composer install --no-progress
-
-    - name: Run test suite
-      run: vendor/bin/phpunit --no-coverage
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: gd, intl, zip, pdo_sqlite, mbstring, curl
+          tools: composer:v2
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: composer validate --no-check-version
+      - run: composer install --no-interaction --no-progress
+      - run: vendor/bin/phpunit
+      - run: vendor/bin/phpstan analyse --no-progress
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci && npx grunt copy cssmin uglify

@@ -51,3 +51,14 @@ If you discover a security vulnerability within XBackBone, please send an e-mail
 This software is licensed under the <a href="https://choosealicense.com/licenses/agpl-3.0/">GNU Affero General Public License v3.0</a>, available in this repository.
 As a "copyright notice" it is sufficient to keep the small footer at the bottom of the page, also to help other people to learn about this project!
 
+
+## 3.8.2 QoL Docker image
+
+For an existing LinuxServer installation, follow the
+[migration and setup guide](docs/linuxserver-migration.md).
+
+This branch adds PHP 8.5 Docker packaging compatible with existing LinuxServer
+/config and /mnt/data mounts, chunked uploads, video thumbnails, SMTP, Authentik
+OIDC, branding, file renaming and metadata/tag search. Follow the
+[upgrade instructions](docs/upgrading.md#382-qol-container-linuxserver-compatible)
+before replacing a 3.8.2 container. Existing databases and uploads are retained.

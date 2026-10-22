@@ -6,8 +6,8 @@ use App\Database\Repositories\UserRepository;
 use App\Web\UA;
 use Intervention\Image\Constraint;
 use Intervention\Image\ImageManagerStatic as Image;
-use League\Flysystem\FileNotFoundException;
-use League\Flysystem\Filesystem;
+use App\Storage\FileNotFoundException;
+use App\Storage\Filesystem;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Exception\HttpBadRequestException;
@@ -17,6 +17,57 @@ use Slim\Psr7\Stream;
 
 class MediaController extends Controller
 {
+    public function updateMetadata(Request $request, Response $response, int $id): Response
+    {
+        if (!$this->session->get('csrf') || !hash_equals((string) $this->session->get('csrf'), (string) param($request, 'csrf'))) {
+            throw new HttpBadRequestException($request);
+        }
+        $media = $this->database->query('SELECT * FROM uploads WHERE id=? LIMIT 1', $id)->fetch();
+        if (!$media || (!$this->session->get('admin') && $media->user_id !== $this->session->get('user_id'))) {
+            throw new HttpNotFoundException($request);
+        }
+        $filename = trim((string) param($request, 'filename'));
+        $game = trim((string) param($request, 'game', ''));
+        $description = trim((string) param($request, 'description', ''));
+        $recorded = (string) param($request, 'recorded_at', '');
+        $tags = array_values(array_unique(array_filter(array_map('trim', explode(',', (string) param($request, 'tags', ''))))));
+        if ($filename === '' || strlen($filename) > 128 || preg_match('~[\\\\/\x00-\x1f]~', $filename) ||
+            strtolower(pathinfo($filename, PATHINFO_EXTENSION)) !== strtolower(pathinfo($media->filename, PATHINFO_EXTENSION)) ||
+            mb_strlen($game) > 255 || mb_strlen($description) > 5000 || count($tags) > 20 ||
+            ($recorded !== '' && (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $recorded) || date('Y-m-d', strtotime($recorded)) !== $recorded))) {
+            return json($response, ['message' => 'Invalid metadata. Keep the existing file extension; filenames are limited to 128 bytes.'], 422);
+        }
+        foreach ($tags as $tag) {
+            if (mb_strlen($tag) > 50 || preg_match('/[\x00-\x1f]/', $tag)) {
+                return json($response, ['message' => 'Tags must be 1–50 printable characters.'], 422);
+            }
+        }
+        $pdo = $this->database->getPdo();
+        $pdo->beginTransaction();
+        try {
+            $this->database->query('UPDATE uploads SET filename=?, game=?, description=?, recorded_at=? WHERE id=?', [$filename, $game ?: null, $description ?: null, $recorded ?: null, $id]);
+            $this->database->query('DELETE FROM uploads_tags WHERE upload_id=?', $id);
+            $repository = make(\App\Database\Repositories\TagRepository::class);
+            foreach ($tags as $tag) { $repository->addTag($tag, $id); }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+        return json($response, ['message' => 'Saved. Existing links and stored files are unchanged.']);
+    }
+
+    public function thumbnail(Request $request, Response $response, string $userCode, string $mediaCode): Response
+    {
+        $media = $this->getMedia($userCode, $mediaCode, false);
+        if (!$media || (!$media->published && $this->session->get('user_id') !== $media->user_id && !$this->session->get('admin'))) {
+            throw new HttpNotFoundException($request);
+        }
+        $path = \App\Services\VideoPreviews::path($media);
+        if (!is_file($path)) { return $response->withStatus(404); }
+        return $response->withHeader('Content-Type', 'image/jpeg')->withHeader('Cache-Control', 'private, max-age=3600')->withBody(new Stream(fopen($path, 'rb')));
+    }
+
     /**
      * @param  Request  $request
      * @param  Response  $response
@@ -37,7 +88,7 @@ class MediaController extends Controller
         Response $response,
         string $userCode,
         string $mediaCode,
-        string $token = null
+        ?string $token = null
     ): Response {
         $media = $this->getMedia($userCode, $mediaCode, true);
 
@@ -154,7 +205,7 @@ class MediaController extends Controller
             throw new HttpNotFoundException($request);
         }
 
-        if ($ext !== null && pathinfo($media->filename, PATHINFO_EXTENSION) !== $ext) {
+        if ($ext !== null && strcasecmp(pathinfo($media->filename, PATHINFO_EXTENSION), $ext) !== 0) {
             throw new HttpBadRequestException($request);
         }
 
@@ -205,6 +256,9 @@ class MediaController extends Controller
     {
         $media = $this->database->query('SELECT * FROM `uploads` WHERE `id` = ? LIMIT 1', $id)->fetch();
 
+        if (!$media || (!$this->session->get('admin') && $media->user_id !== $this->session->get('user_id'))) {
+            throw new HttpNotFoundException($request);
+        }
         $vanity = param($request, 'vanity');
         $vanity = preg_replace('/[^a-z0-9]+/', '-', strtolower($vanity));
 
@@ -407,16 +461,16 @@ class MediaController extends Controller
 
         if (!in_array(explode('/', $mime)[0], ['image', 'video', 'audio']) || $disposition === 'attachment') {
             return $response->withHeader('Content-Type', $mime)
-                ->withHeader('Content-Disposition', $disposition.'; filename="'.$media->filename.'"')
+                ->withHeader('Content-Disposition', $disposition.'; filename="'.addcslashes(str_replace(["\r", "\n"], '', $media->filename), '\\"').'"')
                 ->withHeader('Content-Length', $stream->getSize())
                 ->withBody($stream);
         }
 
-        if (isset($request->getServerParams()['HTTP_RANGE'])) {
+        if ($request->hasHeader('Range') || isset($request->getServerParams()['HTTP_RANGE'])) {
             return $this->handlePartialRequest(
                 $response,
                 $stream,
-                $request->getServerParams()['HTTP_RANGE'],
+                $request->getHeaderLine('Range') ?: $request->getServerParams()['HTTP_RANGE'],
                 $disposition,
                 $media,
                 $mime
@@ -477,42 +531,30 @@ class MediaController extends Controller
         $media,
         $mime
     ) {
-        $end = $stream->getSize() - 1;
-        [, $range] = explode('=', $range, 2);
-
-        if (strpos($range, ',') !== false) {
-            return $response->withHeader('Content-Type', $mime)
-                ->withHeader('Content-Disposition', $disposition.'; filename="'.$media->filename.'"')
-                ->withHeader('Content-Length', $stream->getSize())
-                ->withHeader('Accept-Ranges', 'bytes')
-                ->withHeader('Content-Range', "0,{$stream->getSize()}")
-                ->withStatus(416)
-                ->withBody($stream);
+        $size = $stream->getSize();
+        if (!preg_match('/^bytes=(\d*)-(\d*)$/', $range, $parts) || ($parts[1] === '' && $parts[2] === '')) {
+            return $response->withStatus(416)->withHeader('Content-Range', "bytes */$size");
         }
-
-        if ($range === '-') {
-            $start = $stream->getSize() - (int) substr($range, 1);
+        if ($parts[1] === '') {
+            $length = (int) $parts[2];
+            if ($length < 1) {
+                return $response->withStatus(416)->withHeader('Content-Range', "bytes */$size");
+            }
+            $start = max(0, $size - $length);
+            $end = $size - 1;
         } else {
-            $range = explode('-', $range);
-            $start = (int) $range[0];
-            $end = (isset($range[1]) && is_numeric($range[1])) ? (int) $range[1] : $stream->getSize();
+            $start = (int) $parts[1];
+            $end = $parts[2] === '' ? $size - 1 : min((int) $parts[2], $size - 1);
+        }
+        if ($start >= $size || $start > $end || !$stream->isSeekable()) {
+            return $response->withStatus(416)->withHeader('Content-Range', "bytes */$size");
         }
 
-        if ($end > $stream->getSize() - 1) {
-            $end = $stream->getSize() - 1;
-        }
-        $stream->seek($start);
-
-        header("Content-Type: $mime");
-        header('Content-Length: '.($end - $start + 1));
-        header('Accept-Ranges: bytes');
-        header("Content-Range: bytes $start-$end/{$stream->getSize()}");
-
-        http_response_code(206);
-        ob_end_clean();
-
-        fpassthru($stream->detach());
-
-        exit(0);
+        return $response->withStatus(206)
+            ->withHeader('Content-Type', $mime)
+            ->withHeader('Content-Length', $end - $start + 1)
+            ->withHeader('Accept-Ranges', 'bytes')
+            ->withHeader('Content-Range', "bytes $start-$end/$size")
+            ->withBody(new \GuzzleHttp\Psr7\LimitStream($stream, $end - $start + 1, $start));
     }
 }

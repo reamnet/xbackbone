@@ -38,8 +38,8 @@ class Session
                 'save_path' => $path,
                 'cookie_httponly' => true,
                 'gc_probability' => 25,
-                'cookie_samesite' => 'Strict', // works only for php  >= 7.3
-                'cookie_secure' => isSecure(),
+                'cookie_samesite' => 'Lax', // works only for php  >= 7.3
+                'cookie_secure' => isSecure() || str_starts_with((string) (getenv('APP_URL') ?: ''), 'https://'),
             ]);
 
             if (!$started) {
@@ -101,7 +101,7 @@ class Session
      * Returned a value given a key.
      *
      * @param $key
-     * @param  null  $default
+     * @param  mixed  $default
      *
      * @return mixed
      */

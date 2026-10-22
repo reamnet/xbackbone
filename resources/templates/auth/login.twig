@@ -25,6 +25,9 @@
 {% endblock %}
 
 {% block content %}
+    {% if config.sso.enabled %}
+        <div class="container text-center my-3"><a class="btn btn-primary" href="{{ route('sso.login') }}">Sign in with Authentik</a></div>
+    {% endif %}
     <div class="container-fluid">
         <form class="form-signin" method="post" action="{{ route('login') }}">
             <div class="row text-center">

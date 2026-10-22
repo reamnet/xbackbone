@@ -101,7 +101,7 @@
                 {% elseif type is same as ('video') %}
                     {% set typeMatched = true %}
                     <div class="media-player">
-                        <video id="player" autoplay controls loop preload="auto">
+                        <video id="player" autoplay controls loop preload="metadata" poster="{{ route('public.thumbnail', {'userCode': media.user_code, 'mediaCode': media.code}) }}">
                             <source src="{{ raw_url }}" type="{{ media.mimetype }}">
                             Your browser does not support HTML5 video.
                             <a href="{{ url }}/download" class="btn btn-dark btn-lg"><i class="fas fa-cloud-download-alt fa-fw"></i> Download</a>

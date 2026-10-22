@@ -147,6 +147,20 @@ class Mail
             return 1;
         }
 
+        if (getenv('SMTP_HOST')) {
+            $implicit = (getenv('SMTP_SECURITY') ?: 'tls') === 'ssl';
+            $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(getenv('SMTP_HOST'), (int) (getenv('SMTP_PORT') ?: 587), $implicit);
+            $transport->setUsername(getenv('SMTP_USERNAME') ?: '');
+            $transport->setPassword(getenv('SMTP_PASSWORD') ?: '');
+            $transport->setRequireTls((getenv('SMTP_SECURITY') ?: 'tls') !== 'none');
+            $transport->getStream()->setTimeout(30);
+            $email = (new \Symfony\Component\Mime\Email())
+                ->from(new \Symfony\Component\Mime\Address(getenv('SMTP_FROM_ADDRESS') ?: $this->fromMail, getenv('SMTP_FROM_NAME') ?: ($this->fromName ?? 'XBackBone')))
+                ->to(trim($this->to, '<>'))->subject($this->subject)->html("<html><body>$message</body></html>");
+            (new \Symfony\Component\Mailer\Mailer($transport))->send($email);
+            return 1;
+        }
+
         return (int) mail($this->to, $this->subject, "<html><body>$message</body></html>", $this->headers);
     }
 }

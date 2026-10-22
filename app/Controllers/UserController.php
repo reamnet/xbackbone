@@ -5,7 +5,7 @@ namespace App\Controllers;
 use App\Database\Repositories\UserRepository;
 use App\Web\Mail;
 use App\Web\ValidationHelper;
-use League\Flysystem\FileNotFoundException;
+use App\Storage\FileNotFoundException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 

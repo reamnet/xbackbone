@@ -34,7 +34,9 @@
                                         <tr id="media_{{ media.id }}" class="bulk-selector" data-id="{{ media.id }}">
                                             <td class="text-center">
                                                 <a href="{{ urlFor('/' ~ media.user_code ~ '/' ~ media.code ~ '.' ~ media.extension) }}" target="_blank" class="text-dark">
-                                                {% if isDisplayableImage(media.mimetype) %}
+                                                {% if media.mimetype starts with 'video/' %}
+                                                    <img src="{{ route('public.thumbnail', {'userCode': media.user_code, 'mediaCode': media.code}) }}" class="img-fluid rounded" width="84" height="42" alt="{{ media.filename }}" loading="lazy" onerror="this.style.display='none'">
+                                                {% elseif isDisplayableImage(media.mimetype) %}
                                                     {% if media.username is not null %}
                                                         <img src="{{ urlFor('/' ~ media.user_code ~ '/' ~ media.code ~ '.' ~ media.extension ~ '/raw?width=84&height=42') }}" class="img-fluid rounded">
                                                     {% else %}
@@ -47,6 +49,7 @@
                                             </td>
                                             <td>
                                                 <span class="text-maxlen">{{ media.filename }}</span>
+<button type="button" class="btn btn-sm btn-link media-edit" data-id="{{ media.id }}" data-name="{{ media.filename }}" data-game="{{ media.game }}" data-description="{{ media.description }}" data-recorded="{{ media.recorded_at }}" data-tags="{{ media.tags|join(', ') }}" title="Edit upload"><i class="fas fa-edit"></i></button>
                                                 <p>
                                                     {% for tag_id, tag_name in media.tags %}
                                                         <a href="{{ queryParams({'tag':tag_id}) }}" class="badge badge-pill badge-light shadow-sm tag-item mr-1" data-id="{{ tag_id }}" data-media="{{ media.id }}" title="{{ tag_name }}">{{ tag_name }}</a>

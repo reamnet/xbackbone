@@ -2,6 +2,13 @@ var app = {
     init: function () {
         Dropzone.options.uploadDropzone = {
             paramName: 'upload',
+            chunking: true,
+            forceChunking: true,
+            chunkSize: 8 * 1024 * 1024,
+            parallelChunkUploads: false,
+            retryChunks: true,
+            retryChunksLimit: 3,
+            headers: {'X-Upload-CSRF': window.AppConfig.csrf},
             maxFilesize: window.AppConfig.max_upload_size / Math.pow(1024, 2), // MB
             dictDefaultMessage: window.AppConfig.lang.dropzone,
             error: function (file, response) {
@@ -18,7 +25,7 @@ var app = {
                 $(file.previewElement)
                     .find('.dz-filename')
                     .children()
-                    .html('<a href="' + response.url + '">' + file.name + '</a>');
+                    .empty().append($('<a>').attr('href', response.url).text(file.name));
             },
             timeout: 0
         };
@@ -40,6 +47,30 @@ var app = {
         $('.bulk-selector').contextmenu(app.bulkSelect);
         $('#bulk-delete').click(app.bulkDelete);
 
+        $('.media-edit').click(function () {
+            var el = $(this);
+            $('#media-edit-id').val(el.data('id'));
+            $('#media-edit-name').val(el.attr('data-name'));
+            $('#media-edit-game').val(el.attr('data-game'));
+            $('#media-edit-description').val(el.attr('data-description'));
+            $('#media-edit-recorded').val(el.attr('data-recorded'));
+            $('#media-edit-tags').val(el.attr('data-tags'));
+            $('#media-edit-error').text('');
+            $('#media-edit-modal').modal('show');
+        });
+        $('#media-edit-save').click(function () {
+            var values = {
+                csrf: window.AppConfig.csrf,
+                filename: $('#media-edit-name').val(),
+                game: $('#media-edit-game').val(),
+                description: $('#media-edit-description').val(),
+                recorded_at: $('#media-edit-recorded').val(),
+                tags: $('#media-edit-tags').val()
+            };
+            $.post(window.AppConfig.base_url + '/upload/' + $('#media-edit-id').val() + '/metadata', values)
+                .done(function () { window.location.reload(); })
+                .fail(function (xhr) { $('#media-edit-error').text(xhr.responseJSON ? xhr.responseJSON.message : 'Unable to save metadata.'); });
+        });
         $('.tag-add').click(app.addTag);
         $('.tag-item').contextmenu(app.removeTag);
 

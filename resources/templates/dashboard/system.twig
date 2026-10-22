@@ -59,6 +59,11 @@
                     <div class="card-header"><i class="fas fa-cog fa-fw"></i> {{ lang('system_settings') }}</div>
                     <div class="card-body">
                         <form method="post" action="{{ route('settings.save') }}">
+                            <input type="hidden" name="csrf" value="{{ csrf }}">
+                            <h5>Branding</h5>
+                            <div class="form-group"><label for="brand_name">Site name</label><input id="brand_name" class="form-control" name="brand_name" maxlength="80" value="{{ settings.brand_name|default(config.app_name) }}" required></div>
+                            <div class="form-group"><label for="brand_logo">Logo URL (HTTPS)</label><input id="brand_logo" class="form-control" type="url" name="brand_logo" value="{{ settings.brand_logo }}"></div>
+                            <div class="form-group"><label for="brand_footer">Footer text</label><input id="brand_footer" class="form-control" name="brand_footer" maxlength="200" value="{{ settings.brand_footer }}"></div>
                             <div class="form-group row">
                                 <label for="register_enabled" class="col-sm-4 col-form-label">{{ lang('register_enabled') }}</label>
                                 <div class="col-sm-8">
@@ -100,7 +105,7 @@
                             <div class="form-group row">
                                 <label for="custom_head" class="col-sm-4 col-form-label">{{ lang('custom_head_html') }}</label>
                                 <div class="col-sm-8">
-                                    <textarea name="custom_head" class="form-control text-monospace">{{ settings.custom_head|raw }}</textarea>
+                                    <textarea name="custom_head" class="form-control text-monospace">{{ settings.custom_head }}</textarea>
                                     <small>{{ lang('custom_head_html_hint') }}</small>
                                 </div>
                             </div>

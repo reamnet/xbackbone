@@ -2,8 +2,8 @@
 
 namespace App\Database;
 
-use League\Flysystem\FileNotFoundException;
-use League\Flysystem\Filesystem;
+use App\Storage\FileNotFoundException;
+use App\Storage\Filesystem;
 use PDOException;
 
 class Migrator

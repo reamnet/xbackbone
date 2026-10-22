@@ -1,6 +1,6 @@
 <nav class="navbar navbar-dark bg-primary navbar-expand-md mb-4 shadow-sm">
     <div class="container">
-        <a class="navbar-brand" href="{{ route('root') }}">{{ config.app_name }}</a>
+        <a class="navbar-brand" href="{{ route('root') }}">{% if brandLogo %}<img src="{{ brandLogo }}" alt="" height="28" class="mr-2">{% endif %}{{ config.app_name }}</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>

@@ -3,6 +3,16 @@
 {% block title %}{{ profile ? lang('your_profile') : lang('user.edit') }}{% endblock %}
 
 {% block content %}
+    {% if profile and config.sso.enabled %}
+        <div class="container my-3">
+            <form method="post" action="{{ route('sso.link') }}">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <label for="sso-password">Current password to link Authentik</label>
+                <input type="password" id="sso-password" name="password" autocomplete="current-password" required class="form-control">
+                <button class="btn btn-primary mt-2">Link Authentik</button>
+            </form>
+        </div>
+    {% endif %}
     {% include 'comp/navbar.twig' %}
     <div class="container">
         {% include 'comp/alert.twig' %}

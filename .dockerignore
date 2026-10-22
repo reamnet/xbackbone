@@ -1,0 +1,13 @@
+.git
+vendor
+node_modules
+config.php
+storage
+resources/database/*.db
+resources/sessions/sess_*
+resources/cache/*
+resources/chunks
+resources/previews
+logs/*.txt
+.env
+coverage

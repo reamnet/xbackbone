@@ -37,6 +37,7 @@
     <script>
         window.AppConfig = {
             'base_url': '{{ urlFor() }}',
+            'csrf': {{ csrf|json_encode|raw }},
             'max_upload_size': {{ maxUploadSize }},
             'lang': {'publish': '{{ lang('publish') }}', 'hide': '{{ lang('hide') }}', 'dropzone': '{{ lang('drop_to_upload') }}'}
         }
@@ -46,8 +47,22 @@
 </head>
 <body class="bg-light">
 {% block content %}{% endblock %}
+<div class="modal fade" id="media-edit-modal" tabindex="-1" role="dialog" aria-labelledby="media-edit-title">
+    <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 id="media-edit-title">Edit upload</h5><button class="close" data-dismiss="modal" aria-label="Close">&times;</button></div>
+    <div class="modal-body">
+        <input type="hidden" id="media-edit-id">
+        <label for="media-edit-name">Filename (keep its extension)</label><input class="form-control" id="media-edit-name" maxlength="128">
+        <label for="media-edit-game">Game</label><input class="form-control" id="media-edit-game" maxlength="255">
+        <label for="media-edit-description">Description</label><textarea class="form-control" id="media-edit-description" maxlength="5000"></textarea>
+        <label for="media-edit-recorded">Recorded date</label><input class="form-control" id="media-edit-recorded" type="date">
+        <label for="media-edit-tags">Tags (comma separated, up to 20)</label><input class="form-control" id="media-edit-tags" list="available-tags">
+        <datalist id="available-tags">{% for tag in tags %}<option value="{{ tag.name }}">{% endfor %}</datalist>
+        <p id="media-edit-error" class="text-danger"></p>
+    </div><div class="modal-footer"><button class="btn btn-primary" id="media-edit-save">Save</button></div></div></div>
+</div>
 {% block footer %}
     <div class="container-fluid footer" style="display: none; font-size: 0.8rem">
+        <div class="text-muted">{{ brandFooter }}</div>
         <div class="text-muted">Proudly powered by <a href="https://sergix44.github.io/XBackBone/">XBackBone{% if session.get('admin') %} v{{ PLATFORM_VERSION }}{% endif %}</a> — <i class="fas fa-fw fa-balance-scale"></i> AGPL v3.0</div>
     </div>
 {% endblock %}

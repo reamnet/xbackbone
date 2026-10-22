@@ -29,7 +29,12 @@ class ViewFactory
         $twig->addGlobal('request', $request);
         $twig->addGlobal('session', $container->get('session'));
         $twig->addGlobal('current_lang', $container->get('lang')->getLang());
-        $twig->addGlobal('maxUploadSize', stringToBytes(ini_get('post_max_size')));
+        $session = $container->get('session');
+        if (!$session->has('csrf')) {
+            $session->set('csrf', bin2hex(random_bytes(32)));
+        }
+        $twig->addGlobal('csrf', $session->get('csrf'));
+        $twig->addGlobal('maxUploadSize', (int) (getenv('UPLOAD_MAX_BYTES') ?: 20 * 1024 ** 3));
         $twig->addGlobal('PLATFORM_VERSION', PLATFORM_VERSION);
 
         $twig->addFunction(new TwigFunction('route', 'route'));

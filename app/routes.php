@@ -53,6 +53,7 @@ $app->group('', function (RouteCollectorProxy $group) {
         $group->get('/{id}/clear', [UserController::class, 'clearUserMedia'])->setName('user.clear');
     })->add(AdminMiddleware::class);
 
+    $group->post('/sso/link', [\App\Controllers\Auth\SsoController::class, 'link'])->setName('sso.link');
     $group->get('/profile', [ProfileController::class, 'profile'])->setName('profile');
     $group->post('/profile/{id}', [ProfileController::class, 'profileEdit'])->setName('profile.update');
     $group->post('/user/{id}/refreshToken', [UserController::class, 'refreshToken'])->setName('refreshToken');
@@ -62,6 +63,7 @@ $app->group('', function (RouteCollectorProxy $group) {
 
     $group->get('/user/{id}/export', [ExportController::class, 'downloadData'])->setName('export.data');
 
+    $group->post('/upload/{id}/metadata', [MediaController::class, 'updateMetadata'])->setName('upload.metadata');
     $group->post('/upload/{id}/publish', [MediaController::class, 'togglePublish'])->setName('upload.publish');
     $group->post('/upload/{id}/unpublish', [MediaController::class, 'togglePublish'])->setName('upload.unpublish');
     $group->post('/upload/{id}/vanity', [MediaController::class, 'createVanity'])->setName('upload.vanity');
@@ -80,6 +82,8 @@ $app->get('/recover', [PasswordRecoveryController::class, 'recover'])->setName('
 $app->post('/recover/mail', [PasswordRecoveryController::class, 'recoverMail'])->setName('recover.mail');
 $app->get('/recover/password/{resetToken}', [PasswordRecoveryController::class, 'recoverPasswordForm'])->setName('recover.password.view');
 $app->post('/recover/password/{resetToken}', [PasswordRecoveryController::class, 'recoverPassword'])->setName('recover.password');
+$app->get('/sso/login', [\App\Controllers\Auth\SsoController::class, 'start'])->setName('sso.login');
+$app->get('/sso/callback', [\App\Controllers\Auth\SsoController::class, 'callback'])->setName('sso.callback');
 $app->get('/login', [LoginController::class, 'show'])->setName('login.show');
 $app->post('/login', [LoginController::class, 'login'])->setName('login');
 $app->map(['GET', 'POST'], '/logout', [LoginController::class, 'logout'])->setName('logout');
@@ -90,6 +94,7 @@ $app->get('/user/{token}/config/screencloud', [ClientController::class, 'getScre
 $app->get('/{userCode}/{mediaCode}', [MediaController::class, 'show'])->setName('public');
 $app->get('/{userCode}/{mediaCode}/delete/{token}', [MediaController::class, 'show'])->setName('public.delete.show')->add(CheckForMaintenanceMiddleware::class);
 $app->post('/{userCode}/{mediaCode}/delete/{token}', [MediaController::class, 'deleteByToken'])->setName('public.delete')->add(CheckForMaintenanceMiddleware::class);
+$app->get('/{userCode}/{mediaCode}/thumbnail', [MediaController::class, 'thumbnail'])->setName('public.thumbnail');
 $app->get('/{userCode}/{mediaCode}/raw[.{ext}]', [MediaController::class, 'getRaw'])->setName('public.raw');
 $app->get('/{userCode}/{mediaCode}/download', [MediaController::class, 'download'])->setName('public.download');
 

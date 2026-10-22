@@ -14,16 +14,14 @@ class PasswordRecoveryControllerTest extends TestCase
         Mail::fake();
     }
 
-    /** @test */
-    public function it_loads_the_password_recovery_page()
+    public function test_it_loads_the_password_recovery_page()
     {
         $response = $this->get(route('recover'));
 
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    /** @test */
-    public function it_redirect_if_there_are_no_data()
+    public function test_it_redirect_if_there_are_no_data()
     {
         $response = $this->post(route('recover.mail'));
 
@@ -31,8 +29,7 @@ class PasswordRecoveryControllerTest extends TestCase
         $this->assertSame(route('recover'), $response->getHeaderLine('Location'));
     }
 
-    /** @test */
-    public function it_set_the_recover_token_with_correct_data()
+    public function test_it_set_the_recover_token_with_correct_data()
     {
         $this->createAdminUser();
 
@@ -52,8 +49,7 @@ class PasswordRecoveryControllerTest extends TestCase
         $this->assertNotNull($result->reset_token);
     }
 
-    /** @test */
-    public function recover_form_give_404_if_user_not_found()
+    public function test_recover_form_give_404_if_user_not_found()
     {
         $response = $this->get(route('recover.password.view', [
             'resetToken' => 'not-the-token',
@@ -62,8 +58,7 @@ class PasswordRecoveryControllerTest extends TestCase
         $this->assertSame(404, $response->getStatusCode());
     }
 
-    /** @test */
-    public function it_show_the_recover_form_if_the_user_token_exists()
+    public function test_it_show_the_recover_form_if_the_user_token_exists()
     {
         $this->createUser([
             'reset_token' => 'the-token',
@@ -76,8 +71,7 @@ class PasswordRecoveryControllerTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
-    /** @test */
-    public function it_reset_the_password_if_user_has_reset_token()
+    public function test_it_reset_the_password_if_user_has_reset_token()
     {
         $this->createUser([
             'reset_token' => 'the-token',
@@ -99,8 +93,7 @@ class PasswordRecoveryControllerTest extends TestCase
         $this->assertSame(route('login.show'), $response->getHeaderLine('Location'));
     }
 
-    /** @test */
-    public function it_throws_404_if_the_token_is_wrong()
+    public function test_it_throws_404_if_the_token_is_wrong()
     {
         $this->createUser([
             'reset_token' => 'the-token',
@@ -113,8 +106,7 @@ class PasswordRecoveryControllerTest extends TestCase
         $this->assertSame(404, $response->getStatusCode());
     }
 
-    /** @test */
-    public function it_give_an_error_if_the_password_is_not_the_same()
+    public function test_it_give_an_error_if_the_password_is_not_the_same()
     {
         $this->createUser([
             'reset_token' => 'the-token',

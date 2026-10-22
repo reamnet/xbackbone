@@ -3,24 +3,23 @@
 use App\Database\DB;
 use App\Web\Lang;
 use Aws\S3\S3Client;
-use League\Flysystem\Cached\CachedAdapter;
-use League\Flysystem\Cached\Storage\Adapter;
 use function DI\factory;
 use function DI\get;
 use Google\Cloud\Storage\StorageClient;
-use League\Flysystem\Adapter\Ftp as FtpAdapter;
-use League\Flysystem\Adapter\Local;
-use League\Flysystem\AwsS3v3\AwsS3Adapter;
+use League\Flysystem\Ftp\FtpAdapter;
+use League\Flysystem\Ftp\FtpConnectionOptions;
+use League\Flysystem\Local\LocalFilesystemAdapter as Local;
+use League\Flysystem\AwsS3V3\AwsS3V3Adapter as AwsS3Adapter;
 use League\Flysystem\AzureBlobStorage\AzureBlobStorageAdapter;
 use MicrosoftAzure\Storage\Blob\BlobRestProxy;
-use League\Flysystem\Filesystem;
+use App\Storage\Filesystem;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Logger;
 use Psr\Container\ContainerInterface as Container;
 use Spatie\Dropbox\Client as DropboxClient;
 use Spatie\FlysystemDropbox\DropboxAdapter;
-use Superbalist\Flysystem\GoogleStorage\GoogleStorageAdapter;
+use League\Flysystem\GoogleCloudStorage\GoogleCloudStorageAdapter as GoogleStorageAdapter;
 
 return [
     Logger::class => factory(function () {
@@ -70,7 +69,7 @@ return [
 
             $adapter = new DropboxAdapter($client);
         } elseif ($driver === 'ftp') {
-            $adapter = new FtpAdapter([
+            $adapter = new FtpAdapter(FtpConnectionOptions::fromArray([
                 'host' => $config['storage']['host'],
                 'username' => $config['storage']['username'],
                 'password' => $config['storage']['password'],
@@ -79,14 +78,14 @@ return [
                 'passive' => $config['storage']['passive'],
                 'ssl' => $config['storage']['ssl'],
                 'timeout' => 30,
-            ]);
+            ]));
         } elseif ($driver === 'google-cloud') {
             $client = new StorageClient([
                 'projectId' => $config['storage']['project_id'],
                 'keyFilePath' => $config['storage']['key_path'],
             ]);
 
-            $adapter = new GoogleStorageAdapter($client, $client->bucket($config['storage']['bucket']));
+            $adapter = new GoogleStorageAdapter($client->bucket($config['storage']['bucket']), '', streamReads: true);
         } elseif ($driver === 'azure') {
             $client = BlobRestProxy::createBlobService(
                 sprintf(
@@ -101,8 +100,7 @@ return [
             throw new InvalidArgumentException('The driver specified is not supported.');
         }
 
-        $cache = new Adapter(new Local(BASE_DIR.'resources/cache/fs'), 'file', 300); // 5min
-        return new Filesystem(new CachedAdapter($adapter, $cache));
+        return new Filesystem($adapter);
     }),
     'storage' => get(Filesystem::class),
 

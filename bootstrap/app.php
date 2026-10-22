@@ -50,6 +50,13 @@ $config = array_replace_recursive([
     ],
 ], require CONFIG_FILE);
 
+$config['sso'] = array_replace([
+    'enabled' => filter_var(getenv('OIDC_ENABLED') ?: false, FILTER_VALIDATE_BOOLEAN),
+    'issuer' => getenv('OIDC_ISSUER') ?: '',
+    'client_id' => getenv('OIDC_CLIENT_ID') ?: '',
+    'client_secret' => getenv('OIDC_CLIENT_SECRET') ?: '',
+    'auto_register' => filter_var(getenv('OIDC_AUTO_REGISTER') ?: false, FILTER_VALIDATE_BOOLEAN),
+], $config['sso'] ?? []);
 $builder = new ContainerBuilder();
 
 if (!$config['debug']) {
