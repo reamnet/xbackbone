@@ -152,6 +152,18 @@ SMTP_FROM_NAME=XBackBone
 ```
 
 Use `tls` for STARTTLS, usually port 587, or `ssl` for implicit TLS, usually 465.
+For a personal mail server, use its SMTP submission hostname, port and permitted
+sender address. Leave both authentication fields empty only if your server is
+configured to accept mail from this host without authentication. Keep TLS
+certificate verification enabled.
+
+**The SMTP variables must be present in the running container.** An `.env` file
+and Compose's `--env-file` supply values for `${...}` interpolation; they do not
+automatically export those values into the service. Confirm the actual service
+has the `SMTP_*` environment entries shown in `compose.yaml`. If Portainer
+manages the service, update that same stack's environment entries and variables.
+Restarting an existing container does not refresh its environment; recreate it.
+
 Recreate after changing environment settings, then test:
 
 ```sh
@@ -159,6 +171,20 @@ sudo docker compose --env-file /opt/xbb/qol-source/.env up -d --no-deps xbackbon
 sudo docker compose --env-file /opt/xbb/qol-source/.env exec xbackbone \
   php bin/mail-test you@example.com
 ```
+
+If no mail arrives, first check the loaded configuration without sending anything:
+
+```sh
+sudo docker exec xbackbone php bin/mail-test --check
+```
+
+This reports the hostname, port, encryption mode and whether credentials are set;
+it never prints the username or password. `SMTP_HOST is not configured inside the
+container` means you need to correct the Compose/Portainer environment mapping and
+recreate the service. The container has no local sendmail daemon. The test now
+exits with an error on failure instead of reporting false success. An SMTP
+acceptance response confirms submission only; inspect your mail server's queue,
+logs and recipient spam folder if the message was accepted but not delivered.
 
 In Authentik, create an OAuth2/OpenID provider and an application. Use a
 confidential client, Authorization Code flow with PKCE, and `openid`, `profile`,

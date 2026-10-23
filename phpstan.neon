@@ -6,3 +6,5 @@ parameters:
         - app/Services
         - app/Storage
         - app/Controllers/Auth/SsoController.php
+        - app/Web/Mail.php
+        - bin/mail-test

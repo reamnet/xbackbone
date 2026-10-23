@@ -1,8 +1,42 @@
 #!/usr/bin/env php
 <?php
 require __DIR__.'/../vendor/autoload.php';
-$to = $argv[1] ?? '';
-if (!filter_var($to, FILTER_VALIDATE_EMAIL)) { fwrite(STDERR, "Usage: php bin/mail-test recipient@example.com\n"); exit(1); }
-App\Web\Mail::make()->from(getenv('SMTP_FROM_ADDRESS') ?: 'no-reply@example.com', getenv('SMTP_FROM_NAME') ?: 'XBackBone')
-    ->to($to)->subject('XBackBone SMTP test')->message('The configured mail transport accepted this test.')->send();
-echo "Mail submitted.\n";
+
+use App\Web\Mail;
+use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
+
+$argument = $argv[1] ?? '';
+if ($argument === '--help' || ($argument !== '--check' && !filter_var($argument, FILTER_VALIDATE_EMAIL))) {
+    fwrite($argument === '--help' ? STDOUT : STDERR, "Usage: php bin/mail-test recipient@example.com\n       php bin/mail-test --check (configuration only; does not send mail)\n");
+    exit($argument === '--help' ? 0 : 1);
+}
+
+try {
+    // This command explicitly tests SMTP; never fall back to PHP mail().
+    $transport = Mail::createSmtpTransport();
+    if ($argument === '--check') {
+        $stream = $transport->getStream();
+        if (!$stream instanceof SocketStream) {
+            throw new RuntimeException('SMTP configuration diagnostics require a socket transport.');
+        }
+        echo 'SMTP_HOST: '.$stream->getHost()."\n";
+        echo 'SMTP_PORT: '.$stream->getPort()."\n";
+        echo 'SMTP_SECURITY: '.($stream->isTls() ? 'ssl (implicit TLS)' : ($transport->isTlsRequired() ? 'tls (STARTTLS required)' : 'none (trusted local relay only)'))."\n";
+        echo 'SMTP_USERNAME: '.($transport->getUsername() !== '' ? 'set' : 'not set (relay mode)')."\n";
+        echo 'SMTP_PASSWORD: '.($transport->getPassword() !== '' ? 'set' : 'not set (relay mode)')."\n";
+        echo 'SMTP_FROM_ADDRESS: '.(getenv('SMTP_FROM_ADDRESS') ? 'set' : 'not set; set an address allowed by your mail server')."\n";
+        echo "Configuration loaded. No connection or delivery test was performed.\n";
+        exit(0);
+    }
+    Mail::make()->from(getenv('SMTP_FROM_ADDRESS') ?: 'no-reply@example.com', getenv('SMTP_FROM_NAME') ?: 'XBackBone')
+        ->to($argument)->subject('XBackBone SMTP test')->message('This is a test of the configured XBackBone SMTP transport.')->send();
+    echo "Mail submitted to the SMTP server. Check its queue/logs and the recipient inbox for delivery.\n";
+} catch (Throwable $exception) {
+    $message = $exception->getMessage();
+    $password = (string) getenv('SMTP_PASSWORD');
+    if ($password !== '') {
+        $message = str_replace([$password, base64_encode($password), base64_encode("\0".(getenv('SMTP_USERNAME') ?: '')."\0".$password)], '[redacted]', $message);
+    }
+    fwrite(STDERR, 'Mail test failed: '.$message."\n");
+    exit(1);
+}
